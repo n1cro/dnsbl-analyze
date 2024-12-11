@@ -6,6 +6,8 @@ RUN npm ci
 
 FROM node:22-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 ARG APP
 
 WORKDIR /app
@@ -17,6 +19,8 @@ RUN npm run build ${APP}
 RUN npm install --omit=dev
 
 FROM node:22-alpine AS runner
+
+RUN apk add --no-cache openssl
 
 ARG APP
 ENV APP=${APP}
