@@ -1,0 +1,106 @@
+services:
+  frontend:
+    container_name: frontend-service
+    build:
+      context: ./frontend
+      target: runner
+      args:
+        SERVER_NAME: ${SERVER_NAME}
+        API_PREFIX: ${API_PREFIX}
+        API_PORT: ${API_PORT}
+    ports:
+      - '80:80'
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - api
+
+  api:
+    container_name: api-service
+    build:
+      context: ./backend
+      target: runner
+      args:
+        APP: api
+    env_file: ./backend/.env.prod
+    networks:
+      - internal
+    depends_on:
+      - postgres-migrate
+      - postgres
+      - redis
+
+  parser:
+    container_name: parser-worker
+    build:
+      context: ./backend
+      target: runner
+      args:
+        APP: parser
+    env_file: ./backend/.env.prod
+    networks:
+      - internal
+    depends_on:
+      - postgres-migrate
+      - postgres
+      - redis
+
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: redis-queue
+    volumes:
+      - redisdata:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ['redis-server', '--requirepass', '$REDIS_PASSWORD']
+    restart: unless-stopped
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '$REDIS_PASSWORD', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  postgres:
+    image: postgres:17
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    networks:
+      - internal
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $DB_USER -d $DB_NAME']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  postgres-migrate:
+    container_name: postgres-migration
+    build:
+      context: ./backend
+      dockerfile: ./libs/database/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  internal:
+
+volumes:
+  pgdata:
+  redisdata:
