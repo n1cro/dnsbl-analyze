@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Box, Button, Chip, Modal, Typography } from '@mui/material';
+import { Box, Button, Chip, Modal, Typography, Stack } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import {
 	ReportResponse,
 	BlocklistItem,
@@ -27,18 +28,18 @@ const ReportTable: React.FC = () => {
 		page: 0
 	});
 
+	const loadReports = async () => {
+		setIsLoading(true);
+
+		try {
+			const data = await fetchReports();
+			setReports(data);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 	useEffect(() => {
-		const loadReports = async () => {
-			setIsLoading(true);
-
-			try {
-				const data = await fetchReports();
-				setReports(data);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
 		loadReports();
 	}, []);
 
@@ -52,7 +53,7 @@ const ReportTable: React.FC = () => {
 
 	const formatDate = (date: string | null): string => {
 		if (!date) return 'N/A';
-		return format(new Date(date), 'yyyy-MM-dd HH:mm');
+		return format(new Date(date), 'yy-MM-dd HH:mm:ss');
 	};
 
 	const preparedRows = useMemo(() => {
@@ -74,7 +75,7 @@ const ReportTable: React.FC = () => {
 		return Array.from(uniqueBlocklists).map((blocklistId) => ({
 			field: blocklistId,
 			headerName: blocklistId,
-			width: 200,
+			width: 150,
 			renderCell: (params: GridRenderCellParams<any, Date>) => {
 				const blocklist = params.row.blocklistData[blocklistId];
 				if (!blocklist) return null;
@@ -121,26 +122,43 @@ const ReportTable: React.FC = () => {
 		{
 			field: 'createdAt',
 			headerName: 'Started At',
-			width: 150,
+			width: 160,
 			valueGetter: (value) => formatDate(value)
 		},
 		{
 			field: 'processedAt',
 			headerName: 'Processed At',
-			width: 150,
+			width: 160,
 			valueGetter: (value) => formatDate(value)
 		}
 	];
 
 	const ipColumns: GridColDef[] = [{ field: 'ip', headerName: 'IP Address', width: 300 }];
 	const ipRows = currentBlocklist
-		? currentBlocklist.ipList
-				// .slice(page * 10, page * 10 + 10) // Пагинация по 10 IP-адресов
-				.map((ip, index) => ({ id: index + paginationModel.page * 10 + 1, ip }))
+		? currentBlocklist.ipList.map((ip, index) => ({
+				id: index + paginationModel.page * 10 + 1,
+				ip
+		  }))
 		: [];
 
 	return (
-		<Box sx={{ height: 500 }}>
+		<Box sx={{ mt: 4 }}>
+			<Stack
+				direction="row"
+				justifyContent="space-between"
+				alignItems="center"
+				sx={{ mb: 2 }}
+			>
+				<Typography variant="h6">Reports</Typography>
+				<Button
+					variant="outlined"
+					startIcon={<RefreshIcon />}
+					onClick={loadReports}
+					disabled={isLoading}
+				>
+					Refresh
+				</Button>
+			</Stack>
 			<DataGrid
 				rows={preparedRows}
 				columns={[...staticColumns, ...blocklistColumns]}
@@ -148,6 +166,11 @@ const ReportTable: React.FC = () => {
 				loading={isLoading}
 				getRowId={(row) => row.id}
 				disableRowSelectionOnClick
+				initialState={{
+					sorting: {
+						sortModel: [{ field: 'createdAt', sort: 'desc' }]
+					}
+				}}
 			/>
 
 			<Modal open={!!currentBlocklist} onClose={handleCloseModal}>

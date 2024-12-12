@@ -87,6 +87,13 @@ const ReportForm: React.FC = () => {
 				onSubmit={handleSubmit(handleSubmitForm)}
 				sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
 			>
+				<Typography variant="h6">CIDR Blocks:</Typography>
+				<CidrList name="targets" />
+
+				<Typography variant="h6">Blocklists:</Typography>
+				<BlocklistSelect name="blocklists" blocklistOptions={blocklists} />
+
+				<Typography variant="h6">Others:</Typography>
 				<Controller
 					name="name"
 					control={control}
@@ -101,12 +108,6 @@ const ReportForm: React.FC = () => {
 						/>
 					)}
 				/>
-
-				<Typography variant="h6">CIDR Blocks:</Typography>
-				<CidrList name="targets" />
-
-				<Typography variant="h6">Blocklists:</Typography>
-				<BlocklistSelect name="blocklists" blocklistOptions={blocklists} />
 
 				{error && <Alert severity="error">{error}</Alert>}
 
