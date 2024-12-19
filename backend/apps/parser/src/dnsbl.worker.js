@@ -67,6 +67,7 @@ async function resolveChunks(dnsbl, chunks, resolvers) {
 async function processBlacklist(data) {
 	const { workerId, ips, blocklists, resolvers } = data;
 
+	counter = 0;
 	const instancesRes = resolvers.map((ip) => {
 		const resolver = new dns.Resolver();
 		resolver.setServers([ip]);
