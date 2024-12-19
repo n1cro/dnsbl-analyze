@@ -1,4 +1,5 @@
 import * as path from 'path';
+import os from 'os';
 import { Worker } from 'worker_threads';
 import {
 	Injectable,
@@ -35,7 +36,7 @@ export class ParserService implements OnApplicationBootstrap, OnApplicationShutd
 	onApplicationBootstrap() {
 		for (let index = 0; index < this.numWorkers; index++) {
 			const worker = new Worker(path.join(__dirname, WORKER_FILENAME), {
-				env: { UV_THREADPOOL_SIZE: '8' }
+				env: { UV_THREADPOOL_SIZE: os.cpus().length.toString() }
 			});
 			this.workerPool.push(worker);
 		}
